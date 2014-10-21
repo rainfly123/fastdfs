@@ -68,12 +68,12 @@ int upload(lua_State *L)
 	{
             sprintf(response, "http://%s/%s\n", storageServer.ip_addr, file_id);
             lua_pushstring(L, response);
-            return 1;
 	}
 
 	tracker_disconnect_server_ex(pTrackerServer, true);
 	fdfs_client_destroy();
-
+        if (result == 0)
+            return 1;
 	return result;
 }
 static luaL_Reg mylibs[] = { 
