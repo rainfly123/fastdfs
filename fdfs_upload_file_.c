@@ -64,7 +64,7 @@ int upload(lua_State *L)
 			NULL, 0, group_name, file_id);
 	if (result == 0)
 	{
-            sprintf(response, "http://%s/%s\n", storageServer.ip_addr, file_id);
+            sprintf(response, "%s\n", file_id);
             lua_pushstring(L, response);
 	}
 
