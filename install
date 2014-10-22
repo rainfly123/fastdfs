@@ -1,0 +1,90 @@
+tracker 元数据服务器
+storager 存储服务器
+group 卷，每个卷中有两台存储服务器，数据内容一致。
+每台tracker 理论上可以管理N多卷
+
+安装fastcommon
+tar xvf libfastcommon-1.0.7.tar.gz
+cd libfastcommon-1.0.7
+./make.sh
+./make.sh install
+
+安装fastdfs
+tar xvf FastDFS_v5.04.tar.gz
+cd FastDFS
+./make.sh
+./make.sh install 
+安装ngx-openresty
+unzip pcre-8.36.zip
+然后把Fastdfs/client/fastdfs.so 拷贝到openrest/lualib/ 目录
+
+Storage：
+安装fastcommon
+安装fastdfs
+安装ngx-openrest
+unzip pcre-8.36.zip
+tar xvf ngx-openresty
+cd ngx-openresty
+
+./configure  --with-pcre=../pcre-8.36/ --add-module=../fastdfs-nginx-module/src
+cp mod_fastdfs.conf /etc/fdfs
+配置nginx.conf 可能位于/usr/local/nginx/conf
+
+增加一下配置 在server 字段。
+location /group1/M00/    {
+           root /home/fastdfS/data/;
+           ngx_fastdfs_module;
+        }
+创建目录/home/fastdfs/data/group1
+建立软链ln -s /home/fastdfs/data/ /home/fastdfs/data/group1/M00
+
+
+Q & A
+1) 编译FastDFS 提示libfastcommon.so 未找到
+   确保已经安装libfastcommon 包，然后确认库文件路径,
+   可能存在路径有：
+   /usr/lib 
+   /usr/lib64
+   /usr/local/lib
+   /lib64
+   然后把路径名 加入/etc/ld.so.conf.d/任一文件内，
+   执行ldconfig 
+   然后重新尝试编译FastDFS,
+   如果问题依旧存在， 则可以手动cp libfastcommon.so 到/usr/lib
+2) 编译nginx 失败 提示好多头文件找不到，
+   确保已经安装libfastcommon 包，然后确认头文件和库文件路径,
+   可能存在路径有：
+   /usr/lib 
+   /usr/lib64
+   /usr/local/lib
+   /lib64
+   /usr/local/include
+   /usr/include
+   更改fastdfs-nginx-module/src/conf 文件中CORE_INCS="$CORE_INCS /usr/include/fastdfs /usr/include/fastcommon/"
+CORE_LIBS 定义，
+   然后重新配置编译nginx
+   
+3) 存储机器的配置文件有那些
+client.conf  http.conf  mime.types  mod_fastdfs.conf  storage.conf
+4） tracker 的配置文件有那些
+client.conf  http.conf  mime.types  tracker.conf
+
+5)如何上传文件测试
+fdfs_test /etc/fdfs/client.conf  upload c
+
+6） 如何查看状态
+fdfs_monitor /etc/fdfs/client.conf
+7) 组内一台存储死掉，不能上传了。
+  恢复后 不在上传文件。 除非同步完后。
+8）关于配置项
+tracker.conf 中只需要修改base_path 选项 其他不用理会
+client.conf 中需要修改base_path 和track_server　选项
+storage.con 中需要修改group_name(卷名) base_path （数据存储路径）
+store_path0（存储路径分组）和tracker_server
+mod_fastdfs.conf 中需要修改base_path, group_name , track_server
+9)上传失败 nginx 日志没有任何异常
+查看nginx 运行用户 是否具有文件写权限。
+10)fastdfs.so 生成方法
+cd Fastdfs/client
+
+ cc -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -O -DDEBUG_FLAG -DOS_LINUX -DIOEVENT_USE_EPOLL -DWITH_HTTPD -o fastdfs.so -shared fdfs_upload_file.c  ../common/fdfs_global.o ../common/fdfs_http_shared.o ../common/mime_file_parser.o ../tracker/tracker_proto.o ../tracker/fdfs_shared_func.o ../storage/trunk_mgr/trunk_shared.o tracker_client.o client_func.o client_global.o storage_client.o -lpthread -ldl -rdynamic -lfastcommon -I../common -I../tracker -I/usr/include/fastcommon -fPIC
